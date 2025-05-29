@@ -43,6 +43,10 @@ const productSchema = new mongoose.Schema({
       },
     },
   ],
+  details: {
+    type: [String], // <-- Added details as an array of strings
+    default: [],
+  },
   reviews: [
     {
       user: {

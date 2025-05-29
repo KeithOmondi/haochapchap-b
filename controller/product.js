@@ -16,15 +16,17 @@ router.post(
   isSeller,
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const { shopId, images, location } = req.body;
+      const { shopId, images, location, details, ...rest } = req.body;
 
-      // ✅ Validate location
       if (!location || location.trim() === "") {
         return next(new ErrorHandler("Product location is required", 400));
       }
 
-      const shop = await Shop.findById(shopId);
+      if (!shopId) {
+        return next(new ErrorHandler("Shop ID is required", 400));
+      }
 
+      const shop = await Shop.findById(shopId);
       if (!shop) {
         return next(new ErrorHandler("Shop Id is invalid!", 400));
       }
@@ -32,8 +34,10 @@ router.post(
       let imagesArray = [];
       if (typeof images === "string") {
         imagesArray.push(images);
-      } else {
+      } else if (Array.isArray(images)) {
         imagesArray = images;
+      } else {
+        imagesArray = [];
       }
 
       const imagesLinks = [];
@@ -52,10 +56,14 @@ router.post(
       }
 
       const productData = {
-        ...req.body,
-        location, // ✅ ensure it's included (explicit)
+        ...rest,
+        location,
+        details: Array.isArray(details) ? details : [],
         images: imagesLinks,
-        shop: shop._id,
+        shopId,
+        shop: shop.toObject(), // storing shop as an object per schema
+        sold_out: 0,
+        createdAt: new Date(),
       };
 
       const product = await Product.create(productData);
@@ -75,7 +83,7 @@ router.get(
   "/get-all-products-shop/:id",
   catchAsyncErrors(async (req, res, next) => {
     try {
-      const products = await Product.find({ shop: req.params.id });
+      const products = await Product.find({ shopId: req.params.id });
 
       res.status(200).json({
         success: true,
@@ -102,10 +110,7 @@ router.delete(
       // Delete images from Cloudinary
       for (let i = 0; i < product.images.length; i++) {
         try {
-          const result = await cloudinary.v2.uploader.destroy(
-            product.images[i].public_id
-          );
-          console.log(result);
+          await cloudinary.v2.uploader.destroy(product.images[i].public_id);
         } catch (cloudinaryError) {
           console.error("Failed to delete image:", cloudinaryError);
         }
@@ -149,7 +154,6 @@ router.put(
       const { rating, comment, productId, orderId } = req.body;
       const user = req.user._id; // Provided by isAuthenticated middleware
 
-      // Validate input
       if (
         !mongoose.Types.ObjectId.isValid(productId) ||
         !mongoose.Types.ObjectId.isValid(orderId)
@@ -163,7 +167,6 @@ router.put(
         );
       }
 
-      // Find product and order
       const product = await Product.findById(productId);
       if (!product) {
         return next(new ErrorHandler("Product not found", 404));
@@ -174,14 +177,13 @@ router.put(
         return next(new ErrorHandler("Order not found", 404));
       }
 
-      const isProductInOrder = order.cart.some((item) => {
-        return (
-          item &&
-          item.productId &&
-          item.productId.toString() === productId
-        );
-      });
-      
+      const isProductInOrder = order.cart.some(
+        (item) => item && item.productId && item.productId.toString() === productId
+      );
+
+      if (!isProductInOrder) {
+        return next(new ErrorHandler("Product not found in order", 400));
+      }
 
       // Check if user has already reviewed the product
       const existingReview = product.reviews.find(
@@ -191,12 +193,14 @@ router.put(
       if (existingReview) {
         existingReview.rating = rating;
         existingReview.comment = comment;
+        existingReview.createdAt = new Date();
       } else {
         product.reviews.push({
           user,
           rating,
           comment,
           productId,
+          createdAt: new Date(),
         });
       }
 
@@ -214,15 +218,10 @@ router.put(
         orderId,
         { $set: { "cart.$[elem].isReviewed": true } },
         {
-          arrayFilters: [
-            { "elem.productId": new mongoose.Types.ObjectId(productId) },
-          ],
+          arrayFilters: [{ "elem.productId": new mongoose.Types.ObjectId(productId) }],
           new: true,
         }
-      ).catch((err) => {
-        console.error("Error updating order:", err);
-        return next(new ErrorHandler("Failed to update order status", 500));
-      });
+      );
 
       res.status(200).json({
         success: true,
@@ -236,7 +235,6 @@ router.put(
     }
   })
 );
-
 
 // Admin - Get all products
 router.get(

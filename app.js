@@ -7,9 +7,11 @@ const cors = require("cors");
 const app = express();
 
 // Enable CORS with credentials for specific origins
-app.use(
+// Allow preflight requests for all routes
+app.options(
+  "*",
   cors({
-    origin: ['https://haochapchap-punr.vercel.app', 'http://localhost:5173'], 
+    origin: ["https://haochapchap-punr.vercel.app", "http://localhost:5173"],
     credentials: true,
   })
 );

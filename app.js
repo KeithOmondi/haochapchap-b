@@ -8,13 +8,14 @@ const app = express();
 
 // Enable CORS with credentials for specific origins
 // Allow preflight requests for all routes
-app.options(
-  "*",
-  cors({
-    origin: ["https://haochapchap-punr.vercel.app", "http://localhost:5173"],
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: ["https://haochapchap-punr.vercel.app", "http://localhost:5173"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
 
 // Increase JSON and URL-encoded body parser limits to 50mb
 app.use(express.json({ limit: "50mb" }));

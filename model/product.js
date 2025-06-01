@@ -43,35 +43,52 @@ const productSchema = new mongoose.Schema({
       },
     },
   ],
+  videos: [
+    {
+      public_id: {
+        type: String,
+        required: true,
+      },
+      url: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
   details: {
-    type: [String], // <-- Added details as an array of strings
+    type: [String],
     default: [],
   },
   reviews: [
     {
       user: {
-        type: Object,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
       },
       rating: {
         type: Number,
+        required: true,
       },
-      comment: {
-        type: String,
-      },
+      comment: String,
       productId: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        required: true,
       },
       createdAt: {
         type: Date,
-        default: Date.now(),
+        default: Date.now,
       },
     },
   ],
   ratings: {
     type: Number,
+    default: 0,
   },
   shopId: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Shop",
     required: true,
   },
   shop: {
@@ -84,7 +101,7 @@ const productSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now(),
+    default: Date.now,
   },
 });
 

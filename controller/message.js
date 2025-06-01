@@ -1,67 +1,38 @@
-const Messages = require("../model/messages");
-const ErrorHandler = require("../utils/ErrorHandler");
-const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const express = require("express");
-const cloudinary = require("cloudinary");
 const router = express.Router();
+const Message = require("../model/message"); 
+const { isSeller } = require("../middleware/auth");
 
-// create new message
-router.post(
-  "/create-new-message",
-  catchAsyncErrors(async (req, res, next) => {
-    try {
-      const messageData = req.body;
+router.post("/contact", async (req, res) => {
+  const { name, email, subject, message } = req.body;
 
-      if (req.body.images) {
-        const myCloud = await cloudinary.v2.uploader.upload(req.body.images, {
-          folder: "messages",
-        });
-        messageData.images = {
-          public_id: myCloud.public_id,
-          url: myCloud.url,
-        };
-      }
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
 
-      messageData.conversationId = req.body.conversationId;
-      messageData.sender = req.body.sender;
-      messageData.text = req.body.text;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: "Invalid email format." });
+  }
 
-      const message = new Messages({
-        conversationId: messageData.conversationId,
-        text: messageData.text,
-        sender: messageData.sender,
-        images: messageData.images ? messageData.images : undefined,
-      });
+  try {
+    const newMessage = new Message({ name, email, subject, message });
+    await newMessage.save();
+    res.status(200).json({ message: "Message received and saved!" });
+  } catch (error) {
+    console.error("Error saving message:", error);
+    res.status(500).json({ error: "Failed to save message." });
+  }
+});
 
-      await message.save();
-
-      res.status(201).json({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      return next(new ErrorHandler(error.message), 500);
-    }
-  })
-);
-
-// get all messages with conversation id
-router.get(
-  "/get-all-messages/:id",
-  catchAsyncErrors(async (req, res, next) => {
-    try {
-      const messages = await Messages.find({
-        conversationId: req.params.id,
-      });
-
-      res.status(201).json({
-        success: true,
-        messages,
-      });
-    } catch (error) {
-      return next(new ErrorHandler(error.message), 500);
-    }
-  })
-);
+router.get("/all", isSeller, async (req, res) => {
+  try {
+    const messages = await Message.find().sort({ createdAt: -1 });
+    res.status(200).json({ messages });
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+});
 
 module.exports = router;

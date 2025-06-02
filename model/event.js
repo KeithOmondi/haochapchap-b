@@ -3,15 +3,11 @@ const mongoose = require("mongoose");
 const eventSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, "Please enter your event product name!"],
+    required: [true, "Please enter event name!"],
   },
   description: {
     type: String,
-    required: [true, "Please enter your event product description!"],
-  },
-  category: {
-    type: String,
-    required: [true, "Please enter your event product category!"],
+    required: [true, "Please enter event description!"],
   },
   startDate: {
     type: Date,
@@ -21,58 +17,20 @@ const eventSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  status: {
-    type: String,
-    enum: ["Running", "Completed", "Cancelled"],
-    default: "Running",
-  },
-  tags: {
-    type: [String],
-    default: [],
-  },
-  originalPrice: {
-    type: Number,
-    default: 0,
-  },
-  discountPrice: {
-    type: Number,
-    required: [true, "Please enter your event product price!"],
-  },
-  stock: {
-    type: Number,
-    required: [true, "Please enter your event product stock!"],
-  },
   images: [
     {
-      public_id: {
-        type: String,
-        required: true,
-      },
-      url: {
-        type: String,
-        required: true,
-      },
+      public_id: { type: String, required: true },
+      url: { type: String, required: true },
     },
   ],
   shopId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true,
     ref: "Shop",
+    required: true,
   },
   shop: {
-    _id: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "Shop",
-    },
-    name: {
-      type: String,
-      required: true,
-    },
-  },
-  sold_out: {
-    type: Number,
-    default: 0,
+    _id: { type: mongoose.Schema.Types.ObjectId, ref: "Shop", required: true },
+    name: { type: String, required: true },
   },
   createdAt: {
     type: Date,

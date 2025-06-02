@@ -190,41 +190,39 @@ router.delete(
   "/delete-shop-product/:id",
   isSeller,
   catchAsyncErrors(async (req, res, next) => {
-    try {
-      const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id);
 
-      if (!product) {
-        return next(new ErrorHandler("Product not found with this id", 404));
-      }
-
-      // Delete media from Cloudinary
-      for (const image of product.images) {
-        try {
-          await cloudinary.uploader.destroy(image.public_id);
-        } catch (err) {
-          console.error("Failed to delete image:", err);
-        }
-      }
-
-      for (const video of product.videos || []) {
-        try {
-          await cloudinary.uploader.destroy(video.public_id, { resource_type: "video" });
-        } catch (err) {
-          console.error("Failed to delete video:", err);
-        }
-      }
-
-      await product.remove();
-
-      res.status(200).json({
-        success: true,
-        message: "Product deleted successfully!",
-      });
-    } catch (error) {
-      return next(new ErrorHandler(error.message, 400));
+    if (!product) {
+      return next(new ErrorHandler("Product not found with this id", 404));
     }
+
+    // Delete media from Cloudinary
+    for (const image of product.images) {
+      try {
+        await cloudinary.uploader.destroy(image.public_id);
+      } catch (err) {
+        console.error("Failed to delete image:", err);
+      }
+    }
+
+    for (const video of product.videos || []) {
+      try {
+        await cloudinary.uploader.destroy(video.public_id, { resource_type: "video" });
+      } catch (err) {
+        console.error("Failed to delete video:", err);
+      }
+    }
+
+    // ✅ Replace .remove() with findByIdAndDelete
+    await Product.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully!",
+    });
   })
 );
+
 
 // ========== Get All Products ==========
 router.get(

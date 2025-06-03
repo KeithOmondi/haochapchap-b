@@ -48,6 +48,7 @@ const conversation = require("./controller/conversation");
 const withdraw = require("./controller/withdraw");
 const message = require("./controller/message");
 const publicReview = require("./controller/publicReview");
+const blog = require("./controller/blog");
 
 // Use routes with prefix
 app.use("/api/v2/user", user);
@@ -61,6 +62,7 @@ app.use("/api/v2/payment", payment);
 app.use("/api/v2/withdraw", withdraw);
 app.use("/api/v2/message", message);
 app.use("/api/v2/public-review", publicReview);
+app.use("/api/v2/blog", blog);
 
 // Global error handler middleware
 app.use(ErrorHandler);
